@@ -138,7 +138,7 @@
                 <tr class="bg-slate-50 border-b-2 border-slate-200">
                     <th class="p-3">券商</th><th class="p-3">標的</th><th class="p-3">國家</th><th class="p-3">類型</th>
                     <th class="p-3">買入日期</th><th class="p-3 text-right">股數</th><th class="p-3 text-right">買價</th>
-                    <th class="p-3 text-right">買入總額</th><th class="p-3 text-right">現價 (可修改)</th><th class="p-3 text-right">浮動盈虧</th>
+                    <th class="p-3 text-right">買入總額</th><th class="p-3 text-right">現價 (可修改)</th><th class="p-3 text-right">浮動盈虧</th><th class="p-3 text-center">操作</th>
                 </tr>
             </thead>
             <tbody id="buyTableBody" class="divide-y divide-gray-100"></tbody>
@@ -152,7 +152,7 @@
                 <tr class="bg-slate-50 border-b-2 border-slate-200">
                     <th class="p-3">券商</th><th class="p-3">標的</th><th class="p-3">國家</th><th class="p-3">類型</th>
                     <th class="p-3">賣出日期</th><th class="p-3 text-right">股數</th><th class="p-3 text-right">賣價</th>
-                    <th class="p-3 text-right">賣出總額</th><th class="p-3 text-right">買入成本</th><th class="p-3 text-right">已實現損益</th>
+                    <th class="p-3 text-right">賣出總額</th><th class="p-3 text-right">買入成本</th><th class="p-3 text-right">已實現損益</th><th class="p-3 text-center">操作</th>
                 </tr>
             </thead>
             <tbody id="sellTableBody" class="divide-y divide-gray-100"></tbody>
@@ -397,6 +397,21 @@
             }
         }
 
+        // 刪除紀錄事件
+        function deleteRecord(type, id) {
+            // 跳出彈跳視窗讓使用者確認
+            if (confirm("⚠️ 確定要刪除這筆紀錄嗎？刪除後無法復原。")) {
+                if (type === 'buy') {
+                    buyRecords = buyRecords.filter(r => r.id !== id);
+                } else if (type === 'sell') {
+                    sellRecords = sellRecords.filter(r => r.id !== id);
+                }
+                saveData();  // 寫入本地存檔
+                updateAll(); // 更新所有畫面及圖表
+                showToast("🗑️ 紀錄已成功刪除！");
+            }
+        }
+
         // 統一更新流程
         function updateAll() {
             renderTables();
@@ -467,6 +482,9 @@
                                    value="${r.currentPrice}" onchange="updateCurrentPrice(${r.id}, this.value)">
                         </td>
                         <td class="p-3 border-b text-right ${plClass}">${plSign}$${pl.toFixed(2)}</td>
+                        <td class="p-3 border-b text-center">
+                            <button onclick="deleteRecord('buy', ${r.id})" class="bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-700 px-3 py-1 rounded transition text-sm border border-red-100 shadow-sm">刪除</button>
+                        </td>
                     </tr>
                 `;
             });
@@ -491,6 +509,9 @@
                         <td class="p-3 border-b text-right">$${sellTotal.toFixed(2)}</td>
                         <td class="p-3 border-b text-right">$${r.buyTotal.toFixed(2)}</td>
                         <td class="p-3 border-b text-right ${plClass}">${plSign}$${pl.toFixed(2)}</td>
+                        <td class="p-3 border-b text-center">
+                            <button onclick="deleteRecord('sell', ${r.id})" class="bg-red-50 text-red-500 hover:bg-red-100 hover:text-red-700 px-3 py-1 rounded transition text-sm border border-red-100 shadow-sm">刪除</button>
+                        </td>
                     </tr>
                 `;
             });
