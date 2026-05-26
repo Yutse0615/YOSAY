@@ -24,6 +24,11 @@
     <!-- 提示訊息框 (Toast) -->
     <div id="toast" class="fixed top-5 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded shadow-lg transition-opacity duration-300 opacity-0 pointer-events-none z-50"></div>
 
+    <!-- 用於券商下拉與自訂輸入的資料清單 -->
+    <datalist id="brokerList">
+        <!-- 會由 JS 動態填入 -->
+    </datalist>
+
     <h1 class="text-3xl font-bold text-center mb-8 text-slate-700">📊 股票總攬</h1>
 
     <!-- 1. 四個圓餅圖區域 -->
@@ -57,7 +62,7 @@
         <div class="bg-white p-6 rounded-xl shadow-sm border border-blue-100 border-t-4 border-t-blue-500">
             <h2 class="text-xl font-bold mb-4 flex items-center"><span class="text-blue-500 mr-2">➕</span> 新增買入 / 庫存紀錄</h2>
             <form id="buyForm" class="grid grid-cols-2 gap-4">
-                <div><label class="block text-sm font-medium mb-1">券商名稱</label><input type="text" id="buyBroker" class="w-full border rounded p-2" required></div>
+                <div><label class="block text-sm font-medium mb-1">券商名稱</label><input type="text" id="buyBroker" list="brokerList" placeholder="選擇或輸入" class="w-full border rounded p-2" required></div>
                 <div><label class="block text-sm font-medium mb-1">買入標的</label><input type="text" id="buySymbol" class="w-full border rounded p-2" required></div>
                 <div><label class="block text-sm font-medium mb-1">買入日期</label><input type="date" id="buyDate" class="w-full border rounded p-2" required></div>
                 <div>
@@ -84,7 +89,7 @@
         <div class="bg-white p-6 rounded-xl shadow-sm border border-emerald-100 border-t-4 border-t-emerald-500">
             <h2 class="text-xl font-bold mb-4 flex items-center"><span class="text-emerald-500 mr-2">➖</span> 新增賣出 / 已實現紀錄</h2>
             <form id="sellForm" class="grid grid-cols-2 gap-4">
-                <div><label class="block text-sm font-medium mb-1">券商名稱</label><input type="text" id="sellBroker" class="w-full border rounded p-2" required></div>
+                <div><label class="block text-sm font-medium mb-1">券商名稱</label><input type="text" id="sellBroker" list="brokerList" placeholder="選擇或輸入" class="w-full border rounded p-2" required></div>
                 <div><label class="block text-sm font-medium mb-1">賣出標的</label><input type="text" id="sellSymbol" class="w-full border rounded p-2" required></div>
                 <div><label class="block text-sm font-medium mb-1">賣出日期</label><input type="date" id="sellDate" class="w-full border rounded p-2" required></div>
                 <div>
@@ -104,7 +109,7 @@
                 
                 <!-- 代入買入成本區塊 -->
                 <div class="col-span-2 bg-gray-50 p-3 rounded border">
-                    <label class="block text-sm font-medium mb-1 text-gray-600">代入庫存買入成本 (可選)</label>
+                    <label class="block text-sm font-medium mb-1 text-gray-600">代入庫存買入成本 (可選，將自動扣除對應股數)</label>
                     <select id="sellLinkBuy" class="w-full border rounded p-2 mb-2">
                         <option value="">-- 不代入，手動填寫買入總金額 --</option>
                         <!-- 動態填入 -->
@@ -156,15 +161,39 @@
 
     <script>
         // 資料儲存陣列 (包含預設範例資料)
-        let buyRecords = [
-            { id: 1, broker: "元大", symbol: "2330", date: "2026-05-10", country: "台股", type: "股票", shares: 1000, buyPrice: 800, currentPrice: 850 },
-            { id: 2, broker: "富邦", symbol: "AAPL", date: "2026-01-20", country: "美股", type: "股票", shares: 50, buyPrice: 170, currentPrice: 165 },
-            { id: 3, broker: "國泰", symbol: "00679B", date: "2026-03-15", country: "台股", type: "債券", shares: 2000, buyPrice: 30, currentPrice: 31 }
-        ];
+        let buyRecords = [];
+        let sellRecords = [];
 
-        let sellRecords = [
-            { id: 1, broker: "元大", symbol: "2603", date: "2026-04-05", country: "台股", type: "股票", shares: 1000, sellPrice: 180, buyTotal: 150000 }
-        ];
+        // 從 LocalStorage 載入資料
+        function loadData() {
+            const savedBuy = localStorage.getItem('stockTracker_buyRecords');
+            const savedSell = localStorage.getItem('stockTracker_sellRecords');
+            
+            if (savedBuy) {
+                buyRecords = JSON.parse(savedBuy);
+            } else {
+                // 若沒有存檔，給予預設範例資料
+                buyRecords = [
+                    { id: 1, broker: "元大", symbol: "2330", date: "2026-05-10", country: "台股", type: "股票", shares: 1000, buyPrice: 800, currentPrice: 850 },
+                    { id: 2, broker: "富邦", symbol: "AAPL", date: "2026-01-20", country: "美股", type: "股票", shares: 50, buyPrice: 170, currentPrice: 165 },
+                    { id: 3, broker: "國泰", symbol: "00679B", date: "2026-03-15", country: "台股", type: "債券", shares: 2000, buyPrice: 30, currentPrice: 31 }
+                ];
+            }
+
+            if (savedSell) {
+                sellRecords = JSON.parse(savedSell);
+            } else {
+                sellRecords = [
+                    { id: 1, broker: "元大", symbol: "2603", date: "2026-04-05", country: "台股", type: "股票", shares: 1000, sellPrice: 180, buyTotal: 150000 }
+                ];
+            }
+        }
+
+        // 儲存資料到 LocalStorage
+        function saveData() {
+            localStorage.setItem('stockTracker_buyRecords', JSON.stringify(buyRecords));
+            localStorage.setItem('stockTracker_sellRecords', JSON.stringify(sellRecords));
+        }
 
         // 圖表物件
         let chartCountry, chartAssetType, chartUnrealized, chartRealized;
@@ -182,6 +211,7 @@
         }
 
         document.addEventListener("DOMContentLoaded", () => {
+            loadData(); // 頁面載入時先讀取本機存檔
             initCharts();
             updateAll();
 
@@ -201,6 +231,7 @@
                 };
                 buyRecords.push(record);
                 this.reset();
+                saveData(); // 新增後存檔
                 updateAll();
                 showToast("✅ 已成功新增庫存紀錄！");
             });
@@ -208,6 +239,24 @@
             // 監聽賣出表單提交
             document.getElementById("sellForm").addEventListener("submit", function(e) {
                 e.preventDefault();
+                
+                const sellShares = parseFloat(document.getElementById("sellShares").value);
+                const selectedBuyId = document.getElementById("sellLinkBuy").value;
+                
+                // 如果有選擇代入的庫存，先檢查股數並扣除
+                if (selectedBuyId) {
+                    const buyRecord = buyRecords.find(r => r.id == selectedBuyId);
+                    if (buyRecord) {
+                        if (sellShares > buyRecord.shares) {
+                            showToast("❌ 賣出股數不可大於庫存股數！");
+                            return; // 終止提交
+                        }
+                        // 扣除庫存股數
+                        buyRecord.shares -= sellShares;
+                    }
+                }
+
+                // 建立賣出紀錄
                 const record = {
                     id: Date.now(),
                     broker: document.getElementById("sellBroker").value,
@@ -215,14 +264,22 @@
                     date: document.getElementById("sellDate").value,
                     country: document.getElementById("sellCountry").value,
                     type: document.getElementById("sellType").value,
-                    shares: parseFloat(document.getElementById("sellShares").value),
+                    shares: sellShares,
                     sellPrice: parseFloat(document.getElementById("sellPrice").value),
                     buyTotal: parseFloat(document.getElementById("sellBuyTotal").value)
                 };
                 sellRecords.push(record);
+                
+                // 清理庫存：把股數 <= 0 的紀錄刪除
+                buyRecords = buyRecords.filter(r => r.shares > 0);
+
                 this.reset();
+                document.getElementById("sellShares").removeAttribute("max");
+                document.getElementById("sellShares").placeholder = "";
+                
+                saveData(); // 賣出後存檔
                 updateAll();
-                showToast("✅ 已成功新增歷史交易紀錄！");
+                showToast("✅ 已成功新增交易並更新庫存！");
             });
 
             // 賣出表單：連動庫存計算買入總額
@@ -250,6 +307,13 @@
                     document.getElementById("sellCountry").value = buyRecord.country;
                     document.getElementById("sellType").value = buyRecord.type;
                     document.getElementById("sellBroker").value = buyRecord.broker;
+                    
+                    // 限制最大賣出股數
+                    sellSharesInput.max = buyRecord.shares;
+                    sellSharesInput.placeholder = `最多可賣: ${buyRecord.shares}`;
+                } else {
+                    sellSharesInput.removeAttribute("max");
+                    sellSharesInput.placeholder = "";
                 }
                 calcBuyTotal();
             });
@@ -302,6 +366,7 @@
                     }
 
                     // 重新渲染畫面與圖表
+                    saveData(); // 抓取完最新報價後存檔
                     updateAll();
                     
                     if (errorCount === 0) {
@@ -327,6 +392,7 @@
             const record = buyRecords.find(r => r.id === id);
             if (record) {
                 record.currentPrice = parseFloat(newPrice) || 0;
+                saveData(); // 手動修改現價後存檔
                 updateAll(); // 重新計算圖表和表格
             }
         }
@@ -335,10 +401,11 @@
         function updateAll() {
             renderTables();
             updateDropdowns();
+            updateBrokerList(); // 每次更新也重新整理券商清單
             renderCharts();
         }
 
-        // 更新下拉選單
+        // 更新代入庫存選單
         function updateDropdowns() {
             const select = document.getElementById("sellLinkBuy");
             // 保留第一個選項
@@ -346,8 +413,26 @@
             buyRecords.forEach(r => {
                 const opt = document.createElement("option");
                 opt.value = r.id;
-                opt.textContent = `${r.broker} - ${r.symbol} (成本價: ${r.buyPrice})`;
+                opt.textContent = `${r.broker} - ${r.symbol} (餘 ${r.shares} 股, 成本價: ${r.buyPrice})`;
                 select.appendChild(opt);
+            });
+        }
+
+        // 動態整理券商清單 (下拉與自訂並存)
+        function updateBrokerList() {
+            const datalist = document.getElementById("brokerList");
+            const defaultBrokers = ["元大", "富邦", "國泰", "凱基", "群益", "永豐金"];
+            const allBrokers = new Set(defaultBrokers); // 使用 Set 確保不重複
+            
+            // 從現有紀錄中收集券商
+            buyRecords.forEach(r => allBrokers.add(r.broker));
+            sellRecords.forEach(r => allBrokers.add(r.broker));
+
+            datalist.innerHTML = "";
+            allBrokers.forEach(broker => {
+                const opt = document.createElement("option");
+                opt.value = broker;
+                datalist.appendChild(opt);
             });
         }
 
@@ -528,8 +613,20 @@
             // 🎨 定義莫蘭迪配色 (Morandi Palette)
             const morandiPalette1 = ['#a0aab2', '#d5cabc', '#c8b4a2', '#97a69b']; // 藍灰/杏色系 (用於國家)
             const morandiPalette2 = ['#b8a89f', '#96a198', '#d0d4cc', '#a69993']; // 灰綠/藕色系 (用於資產)
-            const morandiProfit = '#cc9a9a'; // 莫蘭迪紅 (獲利)
-            const morandiLoss = '#9eb39e';   // 莫蘭迪綠 (虧損)
+            
+            // 券商專屬莫蘭迪色盤 (用來分配給不同券商)
+            const brokerPalette = ['#8a9a9a', '#c4b7a6', '#b39d9b', '#9eafb5', '#d0c4b7', '#a6b4a1', '#c9a9a9', '#8b98a8', '#b8b2a6', '#a39b98'];
+            let brokerColorMap = {};
+            let brokerColorIndex = 0;
+            
+            // 動態取得券商專屬顏色的函式
+            function getBrokerColor(brokerName) {
+                if (!brokerColorMap[brokerName]) {
+                    brokerColorMap[brokerName] = brokerPalette[brokerColorIndex % brokerPalette.length];
+                    brokerColorIndex++;
+                }
+                return brokerColorMap[brokerName];
+            }
 
             // 1. 股票國家比例 & 2. 股票債券比例 (依據目前庫存總市值)
             let countryData = { "台股": 0, "美股": 0, "日股": 0, "韓股": 0 };
@@ -559,14 +656,10 @@
             for (let broker in unrealizedByBroker) {
                 let val = unrealizedByBroker[broker];
                 netUnrealized += val; // 加入淨利加總
-                if (val > 0) {
-                    unrealizedLabels.push(`${broker} (盈)`);
-                    unrealizedVals.push(val);
-                    unrealizedColors.push(morandiProfit); 
-                } else if (val < 0) {
-                    unrealizedLabels.push(`${broker} (虧)`);
+                if (val !== 0) {
+                    unrealizedLabels.push(`${broker} (${val > 0 ? '盈' : '虧'})`);
                     unrealizedVals.push(Math.abs(val));
-                    unrealizedColors.push(morandiLoss); 
+                    unrealizedColors.push(getBrokerColor(broker)); // 為券商分配專屬顏色
                 }
             }
             chartUnrealized.data.labels = unrealizedLabels;
@@ -589,14 +682,10 @@
             for (let broker in realizedByBroker) {
                 let val = realizedByBroker[broker];
                 netRealized += val;
-                if (val > 0) {
-                    realizedLabels.push(`${broker} (盈)`);
-                    realizedVals.push(val);
-                    realizedColors.push(morandiProfit); 
-                } else if (val < 0) {
-                    realizedLabels.push(`${broker} (虧)`);
+                if (val !== 0) {
+                    realizedLabels.push(`${broker} (${val > 0 ? '盈' : '虧'})`);
                     realizedVals.push(Math.abs(val));
-                    realizedColors.push(morandiLoss); 
+                    realizedColors.push(getBrokerColor(broker)); // 為券商分配專屬顏色
                 }
             }
             chartRealized.data.labels = realizedLabels;
